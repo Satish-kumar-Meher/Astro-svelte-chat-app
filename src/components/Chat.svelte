@@ -11,7 +11,7 @@
 
   onMount(() => {
     console.log("Connecting to WebSocket...");
-    socket = io("http://localhost:4000", {
+    socket = io("https://astro-svelte-chat-app.onrender.com", {
       transports: ["websocket"],
     });
 
