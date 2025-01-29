@@ -5,23 +5,33 @@
   let socket;
   let message = "";
   let messages = [];
-  let username = "User" + Math.floor(Math.random() * 100);
+  let username = ""; // User's chosen username
   let room = "";
   let roomJoined = false;
   let users = [];
+  let toastMessage = "";
+  let showToast = false;
 
   function joinRoom() {
-    if (room.trim() !== "") {
-      socket.emit("joinRoom", { room, username });
-      roomJoined = true;
-    }
+  if (room.trim() !== "" && username.trim() !== "") {
+    socket.emit("joinRoom", { room, username });
+    roomJoined = true;
+    // Clear the username after joining but not the room
   }
-
+}
   function sendMessage() {
     if (message.trim() !== "") {
       socket.emit("sendMessage", { room, message, username });
       message = "";
     }
+  }
+
+  function showToastMessage(msg) {
+    toastMessage = msg;
+    showToast = true;
+    setTimeout(() => {
+      showToast = false;
+    }, 3000); // Hide after 3 seconds
   }
 
   onMount(() => {
@@ -33,6 +43,14 @@
 
     socket.on("receiveMessage", (data) => {
       messages = [...messages, data];
+    });
+
+    socket.on("userJoined", (data) => {
+      showToastMessage(`${data.username} joined the chat`);
+    });
+
+    socket.on("userLeft", (data) => {
+      showToastMessage(`${data.username} left the chat`);
     });
 
     socket.on("roomUsers", (roomUsers) => {
@@ -71,6 +89,36 @@
   .user-list h3 { margin: 0; }
   .user-list ul { list-style: none; padding: 0; }
   .user-list li { padding: 5px; font-weight: bold; }
+
+  /* Toast Notification Styles */
+  .toast {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+  }
+  .toast.show {
+    opacity: 1;
+  }
+
+  /* Styling for the labels */
+  label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .input-container {
+    margin-bottom: 20px;
+  }
+  .input-area {
+    margin-top: 10px;
+  }
 </style>
 
 <div class="chat-container">
@@ -78,7 +126,24 @@
 
   {#if !roomJoined}
     <div>
-      <input type="text" bind:value={room} placeholder="Enter room name..." />
+      <div class="input-container">
+        <label for="username">Username:</label>
+        <input
+          id="username"
+          type="text"
+          bind:value={username}
+          placeholder="Enter your username..."
+        />
+      </div>
+      <div class="input-container">
+        <label for="room">Room Name:</label>
+        <input
+          id="room"
+          type="text"
+          bind:value={room}
+          placeholder="Enter room name..."
+        />
+      </div>
       <button on:click={joinRoom}>Join Room</button>
     </div>
   {/if}
@@ -95,7 +160,11 @@
     </div>
 
     <div class="input-area">
-      <input type="text" bind:value={message} placeholder="Type a message..." />
+      <input
+        type="text"
+        bind:value={message}
+        placeholder="Type a message..."
+      />
       <button on:click={sendMessage}>Send</button>
     </div>
 
@@ -107,5 +176,10 @@
         {/each}
       </ul>
     </div>
+  {/if}
+
+  <!-- Toast Notification -->
+  {#if showToast}
+    <div class="toast show">{toastMessage}</div>
   {/if}
 </div>
